@@ -1,22 +1,26 @@
-import handlers from '../server/handler.js';
+const {
+  postPredictHandler,
+  postPredictHistoriesHandler,
+} = require("../server/handler");
 
 const routes = [
   {
-    path: '/predict',
-    method: 'POST',
-    handler: handlers.postPredict,
+    path: "/predict",
+    method: "POST",
+    handler: postPredictHandler,
     options: {
       payload: {
-        allow: 'multipart/form-data',
+        allow: "multipart/form-data",
         multipart: true,
+        maxBytes: 1000000,
       },
     },
   },
   {
-    path: '/predict/histories',
-    method: 'GET',
-    handler: handlers.getPredictHistories,
+    path: "/predict/histories",
+    method: "GET",
+    handler: postPredictHistoriesHandler,
   },
 ];
 
-export default routes;
+module.exports = routes;

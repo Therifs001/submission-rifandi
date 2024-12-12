@@ -1,47 +1,57 @@
-import predictClassification from '../services/inferenceService.js';
-import crypto from 'crypto';
-import { storeData, predictionsCollection } from '../services/dataService.js';
+const predictClassification = require("../services/inferenceService");
+const crypto = require("crypto");
+const storeData = require("../services/storeData");
+const getAllData = require("../services/getPredictHistoryData");
 
-async function postPredict(request, h) {
+async function postPredictHandler(request, h) {
   const { image } = request.payload;
   const { model } = request.server.app;
 
-  const { resultScore, result, suggestion } = await predictClassification(
-    model,
-    image
-  );
+  const { label, suggestion } = await predictClassification(model, image);
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
   const data = {
-    id,
-    result,
-    suggestion,
-    createdAt,
+    id: id,
+    result: label,
+    suggestion: suggestion,
+    createdAt: createdAt,
   };
 
   await storeData(id, data);
-  return h
-    .response({
-      status: 'success',
-      message:
-        resultScore > 99
-          ? 'Model is predicted successfully.'
-          : 'Model is predicted successfully but under threshold. Please use the correct picture',
-      data,
-    })
-    .code(201);
+
+  const response = h.response({
+    status: "success",
+    message: "Model is predicted successfully",
+    data,
+  });
+  response.code(201);
+  return response;
 }
 
-async function getPredictHistories(request, h) {
-  const histories = (await predictionsCollection.get()).docs.map((doc) =>
-    doc.data()
-  );
-  const data = histories.map((item) => ({
-    id: item.id,
-    history: item,
-  }));
-  return h.response({ status: 'success', data }).code(200);
+async function postPredictHistoriesHandler(request, h) {
+  const allData = await getAllData();
+
+  const formatAllData = [];
+  allData.forEach((doc) => {
+    const data = doc.data();
+    formatAllData.push({
+      id: doc.id,
+      history: {
+        result: data.result,
+        createdAt: data.createdAt,
+        suggestion: data.suggestion,
+        id: doc.id,
+      },
+    });
+  });
+
+  const response = h.response({
+    status: "success",
+    data: formatAllData,
+  });
+  response.code(200);
+  return response;
 }
 
-export default { postPredict, getPredictHistories };
+module.exports = { postPredictHandler, postPredictHistoriesHandler };

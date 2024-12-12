@@ -1,20 +1,16 @@
-import "dotenv/config.js";
-
-import Hapi from '@hapi/hapi';
-import routes from './routes.js';
-import { loadModel } from '../services/loadModel.js';
-import { InputError } from '../exceptions/InputError.js';
+require("dotenv").config();
+const Hapi = require("@hapi/hapi");
+const routes = require("../server/routes");
+const loadModel = require("../services/loadModel");
+const InputError = require("../exceptions/InputError");
 
 (async () => {
   const server = Hapi.server({
-    port: 8080,
-    host: '0.0.0.0',
+    port: process.env.PORT || 8080,
+    host: "0.0.0.0",
     routes: {
       cors: {
-        origin: ['*'],
-      },
-      payload: {
-        maxBytes: 1000000,
+        origin: ["*"],
       },
     },
   });
@@ -24,13 +20,13 @@ import { InputError } from '../exceptions/InputError.js';
 
   server.route(routes);
 
-  server.ext('onPreResponse', function (request, h) {
+  server.ext("onPreResponse", function (request, h) {
     const response = request.response;
 
     if (response instanceof InputError) {
       const newResponse = h.response({
-        status: 'fail',
-        message: `Terjadi kesalahan dalam melakukan prediksi`,
+        status: "fail",
+        message: `${response.message}`,
       });
       newResponse.code(response.statusCode);
       return newResponse;
@@ -38,28 +34,10 @@ import { InputError } from '../exceptions/InputError.js';
 
     if (response.isBoom) {
       const newResponse = h.response({
-        status: 'fail',
+        status: "fail",
         message: response.message,
       });
       newResponse.code(response.output.statusCode);
-      return newResponse;
-    }
-
-    if (request.payload && request.payload.length > 1000000) {
-      const newResponse = h.response({
-        status: 'fail',
-        message: 'Payload content length greater than maximum allowed: 1000000',
-      });
-      newResponse.code(413);
-      return newResponse;
-    }
-
-    if (response.statusCode === 400) {
-      const newResponse = h.response({
-        status: 'fail',
-        message: 'Terjadi kesalahan dalam melakukan prediksi',
-      });
-      newResponse.code(400);
       return newResponse;
     }
 
